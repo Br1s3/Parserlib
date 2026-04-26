@@ -3,163 +3,15 @@
 #include <string.h>
 #include <errno.h>
 
+#define WITHOUT_LINELEN
+// #define NICOLA_ALGO
+
+// #define PARSE_CSV_IMPLEMENTATION
+// #include "parse_csv.h"
+
 #define PARSERLIB_IMPLEMENTATION
 #include "parserlib.h"
 
-
-#if 0
-#warning COUNTLINE 1
-// Weaknesses
-// - Slow
-// - Can only determine the longest line and not all
-// Strengths
-// - Secure
-
-// int CountLine(FILE *f, int filesize, int *linelen)
-int CountLine(FILE *f)
-{
-    int count = 0;
-    int NBline = 0;
-    int chunk = 5;
-
-    int filesize = SizeOfFile(FILE *f);
-
-    // if (*linelen <= 0) chunk = 5;
-    // else               chunk = *linelen;
-
-    do {
-	char buf[chunk];
-	fgets(buf, chunk, f);
-	int i;
-	for (i = 0; i < chunk; i++) {
-	    // printf(".%c.", buf[i]);
-	    if (buf[i] == '\n') {
-		NBline++;
-		break;
-	    }
-	}
-	if (i == chunk) {
-	    chunk += 1;
-	    count-=2; // count = count - (newline + \0)
-	}
-	count += i+1; // count = count + (nb char + newline)
-	
-    } while (ftell(f) < filesize);
-    
-    rewind(f);
-
-    // *linelen = chunk;
-    return NBline;
-}
-
-#elif 0
-#warning COUNTLINE 2
-// Weaknesses
-// - Can not figure out the longest line
-// - Conditional jump or move depends on uninitialised value(s) because buf[chunk] not fill of character
-// Strengths
-// - Really quick
-// - Don't take much memory on ram
-// - resiliant to the size of chunk BUT DON'T EXCEED 0x1000
-
-int CountLine(FILE *f)
-{
-    int chunk = 0x1000;
-    int nbline = 0;
-
-    ssize_t filesize = SizeOfFile(f);
-    
-    for (int count = 0; count < filesize; count+=chunk) {
-	char buf[chunk];
-
-	fread(buf, sizeof(char), chunk, f);
-	// printf("%s", buf);
-	for (int i = 0; i < chunk; i++) {
-	    if (buf[i] == '\n') nbline++;
-	}
-    }
-    // puts("");
-    rewind(f);
-    return nbline;
-}
-
-#endif
-
-#if 0
-// FileRef DataFromFile(FILE *f)
-char **DataFromFile(FILE *f)
-{
-    char *chunk    = NULL;
-    // char **data    = NULL;
-    size_t plinelen;
-    FileRef fref;
-    fref.nbline = CountLine(f);
-    fref.linelen = (ssize_t *)malloc(sizeof(ssize_t)*fref.nbline);
-    ERRALLOC(fref.linelen);
-
-    fref.data = (char **)malloc(sizeof(char *)*(fref.nbline));
-    ERRALLOC(fref.data);
-
-    for (int i = 0; i < fref.nbline; i++) {
-	// ssize_t ret = getline(&chunk, &linelen, f);
-	fref.linelen[i] = getline(&chunk, &plinelen, f);
-
-	if (fref.linelen[i] < 0) {
-	    fref.data[i] = (char *)malloc(sizeof(char)*(1));
-	    ERRALLOC(fref.data);
-	    fref.data[i][0] = '\0';
-	    break;
-	}
-	fref.data[i] = (char *)malloc(sizeof(char)*(fref.linelen[i] + 1));
-	ERRALLOC(fref.data);
-
-	for (ssize_t j = 0; j < fref.linelen[i]; j++) fref.data[i][j] = chunk[j];
-	fref.data[i][fref.linelen[i]] = '\0';
-    }
-    rewind(f);
-    return fref.data;
-}
-#endif
-
-char *Data1dFromFile(FILE *f, int filelen)
-{
-    char *data = (char *)malloc(sizeof(char)*filelen);
-    ERRALLOC(data);
-
-    fread(data, sizeof(char), filelen, f);
-
-    return data;
-}
-
-#if 1
-ssize_t *ReferanceFromFile(FILE *f, ssize_t filelen, ssize_t nbline)
-{
-    ssize_t *ref = (ssize_t *)malloc(sizeof(ssize_t)*nbline);
-    ERRALLOC(ref);
-    
-    char *data = Data1dFromFile(f, filelen);
-
-    for (ssize_t i = 0, j = 0, k = 0; i < filelen; i++, k++) {
-	if (data[i] == '\n') {
-	    ref[j] = k;
-	    k = 0; j++;
-	}
-    }
-    free(data);
-    return ref;
-}
-
-#elif 0
-ssize_t *ReferanceFromFile(FILE *f, ssize_t filelen)
-{
-    ssize_t nbline = CountLine(f);
-    
-    for (int i = 0; ) {
-	char *fgets(char *s, int size, FILE *stream);
-    }
-}
-
-#endif
 #if 0
 char ***parse(const char *FileName, char delim)
 {
@@ -205,6 +57,47 @@ char ***parse(const char *FileName, char delim)
 }
 #endif
 
+
+int count_line_of_file(char *path)
+{
+    FILE *file = NULL;
+    size_t len = 0;
+    int count = 0;
+    char *buffer = NULL;
+
+    file = fopen(path, "r");
+    if (!file) return (0);
+    while (getline(&buffer, &len, file) != -1) {
+        count++;
+    }
+    if (buffer) free(buffer);
+    fflush(stdout);
+    return count;
+}
+
+char **get_file_data(char *path, int nb_line)
+{
+    FILE *file = NULL;
+    char **array_value = NULL;
+    size_t len = 0;
+    char *buffer = NULL;
+    int index = 0;
+
+    file = fopen(path, "r");
+    if (!file) return (NULL);
+    array_value = malloc(sizeof(char *) * nb_line);
+    while (getline(&buffer, &len, file) != -1) {
+        buffer[strlen(buffer) - 1] = 0;
+        if (index > 0)
+            array_value[index - 1] = strdup(buffer);
+        index++;
+    }
+    fclose(file);
+    if (buffer) free(buffer);
+    return (array_value);
+}
+
+
 int main(int argc, char **argv)
 {
     argc--; argv++;
@@ -213,48 +106,80 @@ int main(int argc, char **argv)
 	return 1;
     }
     
-    FILE *file = OpenFile(argv[0]);
-
+    #if defined(WITHOUT_LINELEN)
     FileRef fileref;
-    fileref.len    = SizeOfFile(file);
-    printf("Number-of-character: %ld\n", fileref.len);
+
+    FILE *file = OpenFile(argv[0]);
+    // fileref.len    = SizeOfFile(file);
+    // printf("Number-of-character: %ld\n", fileref.len);
     fileref.nbline = CountLine(file);
-    printf("Number-of-line: %ld\n", fileref.nbline);
-    fileref.linelen = LineLen(file, fileref.nbline);
+    // printf("Number-of-line: %ld\n", fileref.nbline);
     
-    fileref.data = DataFromFile(file, fileref.nbline, fileref.linelen);
-
-
-    for (int i = 0; i < fileref.nbline; i++) {
-	// for (int j = 0; j < fileref.linelen[i]; j++) {
-	//     if(printf("%c", fileref.data[i][j]) < 0) {
-	// 	fprintf(stderr, "ERROR printf: %d, %d\n", i, j);
-	//     }
-	// }
+    fileref.data = DataFromFile(file, fileref.nbline);
+    // for (int i = 0; i < fileref.nbline; i++) {	
 	// fwrite(fileref.data[i], fileref.linelen[i], sizeof(char), stdout);
-	puts(fileref.data[i]);
-    }
-
-    // free(fileref.linelen);
-    // for (ssize_t i = 0; i < fileref.nbline; i++) {
-    // 	free(fileref.data[i]);
+	// putchar('\n');
+	
+	// puts(fileref.data[i]);
+	
+	// printf("%s\n", fileref.data[i]);
     // }
+    
     for (int i = 0; i < fileref.nbline; i++) {
 	free(fileref.data[i]);
     }
     free(fileref.data);
-    return 0;
+
+    #elif defined(NICOLA_ALGO)
+    FileRef fileref;
+    fileref.nbline = count_line_of_file(argv[0]);
+
+    fileref.data = get_file_data(argv[0], fileref.nbline);
+
+    // for (int i = 0; i < fileref.nbline; i++) {
+    // 	puts(fileref.data[i]);
+    // }
     
-    char ***tab3d = parse(argv[0], ' ');
-    ERRALLOC(tab3d);
+    for (int i = 0; i < fileref.nbline; i++) {
+	free(fileref.data[i]);
+    }
+    free(fileref.data);
+    
+
+    #elif !defined(WITHOUT_LINELEN)
+    
+    fileref.linelen = LineLen(file, fileref.nbline);    
+    fileref.data = DataFromFile(file, fileref.nbline, fileref.linelen);
+
+//    for (int i = 0; i < fileref.nbline; i++) {	
+	// printf("line: %d, linelen: %ld \t|", i, fileref.linelen[i]);
+	// fwrite(fileref.data[i], fileref.linelen[i], sizeof(char), stdout);
+	// putchar('\n');
+
+//	puts(fileref.data[i]);
+
+	// printf("%s\n", fileref.data[i]);
+//    }
 
     for (int i = 0; i < fileref.nbline; i++) {
-	for (int j = 0; fileref.linelen[i]; j++) {
-	    for (int k = 0; k < 5; k++) {
-		printf("|%c|", tab3d[i][j][k]);
-	    }
-	}
+	free(fileref.data[i]);
     }
+    free(fileref.data);
+    fclose(file);
+
+    #endif
+    return 0;
+    
+    // char ***tab3d = parse(argv[0], ' ');
+    // ERRALLOC(tab3d);
+
+    // for (int i = 0; i < fileref.nbline; i++) {
+    // 	for (int j = 0; fileref.linelen[i]; j++) {
+    // 	    for (int k = 0; k < 5; k++) {
+    // 		printf("|%c|", tab3d[i][j][k]);
+    // 	    }
+    // 	}
+    // }
     
     // free(tab);
     // MEM_FREE(tab2d, NBline);
@@ -266,6 +191,5 @@ int main(int argc, char **argv)
     // 	printf("|%s|\n", buf);
     // } while(count < file_len);
 
-    fclose(file);
     return 0;
 }
