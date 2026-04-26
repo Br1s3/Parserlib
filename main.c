@@ -85,48 +85,56 @@ int CountLine(FILE *f)
 
 #endif
 
-char **DataFromFile(FILE *f, int nbline)
+#if 0
+// FileRef DataFromFile(FILE *f)
+char **DataFromFile(FILE *f)
 {
-    char *chunk = NULL;
-    size_t linelen = 0;
-    char **data = NULL;
-    
-    data = (char **)malloc(sizeof(char *)*(nbline));
-    ERRALLOC(data);
-    
-    for (int i = 0; i < nbline; i++) {
-	ssize_t ret = getline(&chunk, &linelen, f);
-	
-	if (ret < 0) {
-	    data[i] = (char *)malloc(sizeof(char)*(1));
-	    ERRALLOC(data);
-	    data[i][0] = '\0';
+    char *chunk    = NULL;
+    // char **data    = NULL;
+    size_t plinelen;
+    FileRef fref;
+    fref.nbline = CountLine(f);
+    fref.linelen = (ssize_t *)malloc(sizeof(ssize_t)*fref.nbline);
+    ERRALLOC(fref.linelen);
+
+    fref.data = (char **)malloc(sizeof(char *)*(fref.nbline));
+    ERRALLOC(fref.data);
+
+    for (int i = 0; i < fref.nbline; i++) {
+	// ssize_t ret = getline(&chunk, &linelen, f);
+	fref.linelen[i] = getline(&chunk, &plinelen, f);
+
+	if (fref.linelen[i] < 0) {
+	    fref.data[i] = (char *)malloc(sizeof(char)*(1));
+	    ERRALLOC(fref.data);
+	    fref.data[i][0] = '\0';
 	    break;
 	}
-	data[i] = (char *)malloc(sizeof(char)*(ret + 1));
-	ERRALLOC(data);
+	fref.data[i] = (char *)malloc(sizeof(char)*(fref.linelen[i] + 1));
+	ERRALLOC(fref.data);
 
-	for (ssize_t j = 0; j < ret; j++) data[i][j] = chunk[j];
-	data[i][ret] = '\0';
+	for (ssize_t j = 0; j < fref.linelen[i]; j++) fref.data[i][j] = chunk[j];
+	fref.data[i][fref.linelen[i]] = '\0';
     }
     rewind(f);
-    return data;
+    return fref.data;
 }
+#endif
 
 char *Data1dFromFile(FILE *f, int filelen)
 {
     char *data = (char *)malloc(sizeof(char)*filelen);
     ERRALLOC(data);
-    
+
     fread(data, sizeof(char), filelen, f);
-    
+
     return data;
 }
 
 #if 1
-char *ReferanceFromFile(FILE *f, ssize_t filelen, ssize_t nbline)
+ssize_t *ReferanceFromFile(FILE *f, ssize_t filelen, ssize_t nbline)
 {
-    int *ref = (char *)malloc(sizeof(char)*nbline);
+    ssize_t *ref = (ssize_t *)malloc(sizeof(ssize_t)*nbline);
     ERRALLOC(ref);
     
     char *data = Data1dFromFile(f, filelen);
@@ -142,7 +150,7 @@ char *ReferanceFromFile(FILE *f, ssize_t filelen, ssize_t nbline)
 }
 
 #elif 0
-char *ReferanceFromFile(FILE *f, ssize_t filelen)
+ssize_t *ReferanceFromFile(FILE *f, ssize_t filelen)
 {
     ssize_t nbline = CountLine(f);
     
@@ -152,7 +160,7 @@ char *ReferanceFromFile(FILE *f, ssize_t filelen)
 }
 
 #endif
-
+#if 0
 char ***parse(const char *FileName, char delim)
 {
     char bufp;
@@ -163,7 +171,7 @@ char ***parse(const char *FileName, char delim)
     FILE *f = OpenFile(FileName);
     
     int nbline = CountLine(f);
-    char **data = DataFromFile(f, nbline);
+    char **data = DataFromFile(f);
     ERRALLOC(data);
 
     ParsedData = (char ***)malloc(sizeof(char **)*nbline);
@@ -195,7 +203,7 @@ char ***parse(const char *FileName, char delim)
     
     return ParsedData;
 }
-
+#endif
 
 int main(int argc, char **argv)
 {
@@ -209,45 +217,47 @@ int main(int argc, char **argv)
 
     FileRef fileref;
     fileref.len    = SizeOfFile(file);
-    printf("Number-of-character: %d\n", fileref.len);
+    printf("Number-of-character: %ld\n", fileref.len);
     fileref.nbline = CountLine(file);
-    printf("Number-of-line: %d\n", NBline);
-    fileref.
+    printf("Number-of-line: %ld\n", fileref.nbline);
+    fileref.linelen = LineLen(file, fileref.nbline);
     
+    fileref.data = DataFromFile(file, fileref.nbline, fileref.linelen);
 
 
-    char **tab2d = NULL;
-    tab2d = DataFromFile(file, NBline);
-    ERRALLOC(tab2d);
-    // char *tab = DataFromFile(file, file_len);
-
-
-    // fwrite(tab, file_len, sizeof(char), stdout);
-    for (int i = 0; i < NBline; i++) {
-	// puts(tab[i]);
-	// printf("%s", tab2d[i]);
-	// int ggwp;
-	// for (ggwp = 0; tab2d[ggwp]; ggwp++) ;
-	// printf("%p -> %s", tab2d[i], tab2d[i]);
-	// int ggwp = strsize(tab2d[i]);
-	int ggwp = strsize(tab2d[i]);
-	fwrite(tab2d[i], ggwp, sizeof(char), stdout);
+    for (int i = 0; i < fileref.nbline; i++) {
+	// for (int j = 0; j < fileref.linelen[i]; j++) {
+	//     if(printf("%c", fileref.data[i][j]) < 0) {
+	// 	fprintf(stderr, "ERROR printf: %d, %d\n", i, j);
+	//     }
+	// }
+	// fwrite(fileref.data[i], fileref.linelen[i], sizeof(char), stdout);
+	puts(fileref.data[i]);
     }
 
-
+    // free(fileref.linelen);
+    // for (ssize_t i = 0; i < fileref.nbline; i++) {
+    // 	free(fileref.data[i]);
+    // }
+    for (int i = 0; i < fileref.nbline; i++) {
+	free(fileref.data[i]);
+    }
+    free(fileref.data);
+    return 0;
+    
     char ***tab3d = parse(argv[0], ' ');
     ERRALLOC(tab3d);
 
-    for (int i = 0; i < NBline; i++) {
-	for (int j = 0; tab3d[i] != NULL; j++) {
-	    for (int k = 0; tab3d[i][j] != NULL; k++) {
+    for (int i = 0; i < fileref.nbline; i++) {
+	for (int j = 0; fileref.linelen[i]; j++) {
+	    for (int k = 0; k < 5; k++) {
 		printf("|%c|", tab3d[i][j][k]);
 	    }
 	}
     }
     
     // free(tab);
-    MEM_FREE(tab2d, NBline);
+    // MEM_FREE(tab2d, NBline);
     
     // // int count = 0;
     // do {
