@@ -3,56 +3,10 @@
 #include <string.h>
 #include <errno.h>
 
-// #define NICOLA_ALGO
+#define NICOLA_ALGO
 
 #define PARSERLIB_IMPLEMENTATION
 #include "parserlib.h"
-
-#if 0
-char ***parse(const char *FileName, char delim)
-{
-    char bufp;
-    char *buf = &bufp;
-    size_t wordlen = 0;
-    char ***ParsedData = NULL;
-    
-    FILE *f = OpenFile(FileName);
-    
-    int nbline = CountLine(f);
-    char **data = DataFromFile(f);
-    ERRALLOC(data);
-
-    ParsedData = (char ***)malloc(sizeof(char **)*nbline);
-    ERRALLOC(data);
-    for (int i = 0; i < nbline; i++) {
-	ssize_t linelen = strsize(data[i]);
-	
-	ParsedData[i] = (char **)malloc(sizeof(char *)*linelen);
-	ERRALLOC(ParsedData);
-	ssize_t ret = 0;
-	for (ssize_t j = 0; j < linelen; j+=ret) {
-	    
-	    ret = getdelim(&buf, &wordlen, delim, f);
-	    if (ret < 0) {
-		ParsedData[i][j] = (char *)malloc(sizeof(char)*1);
-		ERRALLOC(ParsedData);
-		ParsedData[i][j][0] = '\0';
-		break;
-	    }
-	    ParsedData[i][j] = (char *)malloc(sizeof(char)*(ret+1));
-	    ERRALLOC(ParsedData);
-
-	    for (int k = 0; k < ret; k++) {
-		ParsedData[i][j][k] = buf[k];
-	    }
-	    ParsedData[i][j][ret] = '\0';
-	}
-    }
-    
-    return ParsedData;
-}
-#endif
-
 
 int count_line_of_file(char *path)
 {
@@ -93,6 +47,60 @@ char **get_file_data(char *path, int nb_line)
     return (array_value);
 }
 
+int find_char(char *src, char to_find)
+{
+    int count = 0;
+
+    for (int i = 0; src[i]; i++) {
+        if (src[i] == to_find)
+            count++;
+    }
+    return (count + 1);
+}
+
+char **get_data(char *src, char *inter)
+{
+    char *temp = NULL;
+    char **array_value = NULL;
+    int nb_column = find_char(src, inter[0]);
+    int index = 0;
+
+    array_value = malloc(sizeof(char *) * (nb_column + 1));
+    temp = strtok(src, inter);
+    for (int i = 0; temp; i++, index++) {
+        array_value[index] = strdup(temp);
+        temp = strtok( NULL, inter);
+        array_value[index + 1] = NULL;
+    }
+    return (array_value);
+}
+
+char ***parse_data(char **src, int nb_line, char *inter)
+{
+    char ***final_array = NULL;
+
+    final_array = malloc(sizeof(char **) * (nb_line + 1));
+    if (!final_array) return (NULL);
+    for (int i = 0; i < nb_line; i++) {
+        final_array[i] = get_data(src[i], inter);
+        final_array[i + 1] = NULL;
+    }
+    return (final_array);
+}
+
+char ***parse_csv(char* file_path, char *inter)
+{
+    char **array = NULL;
+    // verif inter in string ? nice : quit
+    int nb_line = count_line_of_file(file_path) - 1;
+
+    array = get_file_data(file_path, nb_line);
+    if (!array) return (NULL);
+    char ***test = parse_data(array, nb_line, inter);
+    // printf("%s - %s - %s\n", test[1][0], test[1][1], test[1][2]);
+    return (test);
+}
+
 
 int main(int argc, char **argv)
 {
@@ -101,46 +109,68 @@ int main(int argc, char **argv)
 	fprintf(stderr, "ERROR: No argument, the name of the file to read is missing\n");
 	return 1;
     }
+
+    #if 1
+
+    char ***ParsedData = parse(argv[0], ' ');
+    if (!ParsedData) return 1;
+
+// #if defined(VAR_OPT)
+//     for (int i = 0; i < __ft.nbline; i++) {
+// 	for (int j = 0; j < __ft.nbword[i]; j++) {
+// 	    printf("%s ", ParsedData[i][j]);
+// 	}
+// 	printf("\n");
+//     }
+
+// #else
+//     for (int i = 0; ParsedData[i]; i++) {
+// 	for (int j = 0; ParsedData[i][j]; j++) {
+// 	    printf("%s ", ParsedData[i][j]);
+// 	}
+// 	putchar('\n');
+//     }
+// #endif
     
-    #if !defined(NICOLA_ALGO)
+    freeparse(ParsedData);
+    return 0;
+    
+    #elif !defined(NICOLA_ALGO)
     file_t ft;
 
-    FILE *file = OpenFile(argv[0]);
-    // ft.size    = SizeOfFile(file);
+    DataFromFile(argv[0], &ft);
     // printf("Number-of-character: %ld\n", ft.size);
-    ft.nbline = CountLine(file);
-    // fclose(file);
     // printf("Number-of-line: %ld\n", ft.nbline);
-    ft.data = DataFromFile(file, ft.nbline);
-    munmap(ft.data, sizeof(char *)*ft.nbline);
+
     // for (int i = 0; i < ft.nbline; i++) {
+    // for (int i = ft.nbline-1; i > -1; i--) {
 	// fwrite(ft.data[i], ft.linelen[i], sizeof(char), stdout);
 	// putchar('\n');
-	
+
 	// puts(ft.data[i]);
 	
 	// printf("%s\n", ft.data[i]);
     // }
-    // munmap(ft.data, ft.size);
-    // for (int i = 0; i < ft.nbline; i++) {
-    // 	free(ft.data[i]);
-    // }
-    // free(ft.data);
+
+    FreeDataFromFile(&ft);
 
     #else
-    file_t ft;
-    ft.nbline = count_line_of_file(argv[0]);
+    char ***ParsedData = parse_csv(argv[0], " ");
 
-    ft.data = get_file_data(argv[0], ft.nbline);
-
-    // for (int i = 0; i < ft.nbline; i++) {
-    // 	puts(ft.data[i]);
+    // for (int i = 0; ParsedData[i]; i++) {
+    // 	for (int j = 0; ParsedData[i][j]; j++) {
+    // 	    printf("%s ", ParsedData[i][j]);
+    // 	}
+    // 	printf("\n");
     // }
-    
-    for (int i = 0; i < ft.nbline; i++) {
-	free(ft.data[i]);
+
+    for (int i = 0; ParsedData[i]; i++) {
+	for (int j = 0; ParsedData[i][j]; j++) {
+	    free(ParsedData[i][j]);
+	}
+	free(ParsedData[i]);
     }
-    free(ft.data);
+    free(ParsedData);
     
     #endif
     return 0;
