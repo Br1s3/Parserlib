@@ -10,7 +10,7 @@
 #include <unistd.h>    // Used for: fstat
 
 // #define VAR_OPT
-#define CHUNK 0x1000
+
 
 #define TESTMALLOC(x)                                                          \
 do                                                                             \
@@ -84,9 +84,8 @@ ssize_t SizeOfFile(FILE *f)
     }
     __ft.size = st.st_size;
     return __ft.size;
-    
     #endif
-
+    
     if (fstat(fileno(f), &st) < 0) {
 	fprintf(stderr, "ERROR: %s, %d\n", strerror(errno), __LINE__);
         fclose(f);
@@ -123,10 +122,14 @@ ssize_t CountLine(FILE *f)
 
     ssize_t nbline = 0;
 
-    for (char *ret = start; (buf < end) || (!ret); buf = ret+1) {
-	ret = memchr(buf, '\n', end - buf);
-	nbline++;
+    while (buf < end) {
+	char *ret = memchr(buf, '\n', end - buf);
+	if (ret) {
+	    nbline++;
+	    buf = ret+1;
+	} else break;
     }
+    
 #  if defined(VAR_OPT)
     __ft.nbline = nbline;
 #  else
@@ -139,6 +142,7 @@ ssize_t CountLine(FILE *f)
 char **DataFromFile(const char *FileName, file_t *ft)
 {
     FILE *f = OpenFile(FileName);
+    if (!f) return NULL;
     
 #  if defined(VAR_OPT)
 
@@ -150,7 +154,7 @@ char **DataFromFile(const char *FileName, file_t *ft)
 	fclose(f);
 	return NULL;
     }
-
+    ft->rdata = __ft.rdata;
     __ft.linelen = (ssize_t *)malloc(sizeof(ssize_t)*ft->nbline);
     TESTMALLOC(__ft.linelen);
 
@@ -180,22 +184,30 @@ char **DataFromFile(const char *FileName, file_t *ft)
 	return NULL;
     }
 #  endif
-    
-    ft->data = (char **)malloc(sizeof(char *)*ft->nbline);
+
+    ft->data = (char **)malloc(sizeof(char *)*(ft->nbline+1));
     TESTMALLOC(ft->data);
+    ft->data[ft->nbline] = NULL;
 
     ssize_t nbline = 0;
     char *p = ft->rdata;
     char *end = ft->rdata + ft->size;
+        
+    while ((p < end)) {
+        char *nl = memchr(p, '\n', end - p);
+	if (nl) {
+            *nl = '\0';
+	    if (*(nl-1) == '\r') *(nl-1) = '\0'; // remove '\r'
 
-    for (char *nl = ft->rdata; (p < end) && (nbline < ft->nbline); p = nl + 1) {
-        nl = memchr(p, '\n', end - p);
-	if (!nl) break;
-        *nl = '\0';
 #  if defined(VAR_OPT)
-        __ft.linelen[nbline] = nl - p;
+            __ft.linelen[nbline] = nl - p;
 #  endif
-	ft->data[nbline++] = p;
+            ft->data[nbline++] = p;
+            p = nl + 1;
+	} else {
+	    ft->data[nbline++] = p;
+	    break;
+	}
     }
     return ft->data;
 }
@@ -246,25 +258,31 @@ char ***parse(const char *FileName, char delim)
 	    if (__ft.data[i][j] == delim) nbword++;
 	}
 	nbword++;
+
 #  if defined(VAR_OPT)	
 	__ft.nbword[i] = nbword;
 #  endif
 
         pdata[i] = (char **)malloc(sizeof(char *)*(nbword+1));
+	TESTMALLOC(pdata[i]);
 	pdata[i][nbword] = NULL;
 
 	char *end = __ft.data[i] + j;
 	char *p   = __ft.data[i];
+	
 	nbword = 0;
 
-	for (char *nw = __ft.data[i]; (p < end+1) || (!nw); p = nw + 1) {
-	    nw = memchr(p, delim, end - p);
-	    if (nw == NULL) {
+	while (p < end+1) {
+	    char *nw = memchr(p, delim, end - p);
+
+	    if (nw) {
+		*(nw) = '\0';
+		pdata[i][nbword++] = p;
+		p = nw + 1;
+	    } else {
 		pdata[i][nbword++] = p;
 		break;
 	    }
-	    *(nw) = '\0';
-	    pdata[i][nbword++] = p;
 	}
     }
 #  if !defined(VAR_OPT)
