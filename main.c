@@ -14,9 +14,9 @@ int main(int argc, char **argv)
 	return 1;
     }
 
-    #if 1
+#if 1
 
-    char ***ParsedData = parse(argv[0], ',');
+    char ***ParsedData = ParseDataFile(argv[0], ',');
     if (!ParsedData) return 0;
 
 #if defined(VAR_OPT)
@@ -36,37 +36,22 @@ int main(int argc, char **argv)
     }
 #endif
     
-    freeparse(ParsedData);
+    FreeParsedData(ParsedData);
     return 0;
     
-    #elif !defined(NICOLA_ALGO)
+#elif !defined(NICOLA_ALGO)
     file_t ft;
 
-    DataFromFile(argv[0], &ft);
+    GetDataFile(argv[0], &ft);
     printf("Number-of-character: %ld\n", ft.size);
     printf("Number-of-line: %ld\n", ft.nbline);
 
     for (int i = 0; ft.data[i]; i++) {
-    // for (int i = 0; i < ft.nbline; i++) {
 	printf("nbline: %d $ [%s]\n", i, ft.data[i]);
-	// printf("[");
-	// for (int j = 0; j < ft.data[i][j]; j++)
-	//     printf("%c", ft.data[i][j]);
-	// printf("]\n");
     }
-    
-    // for (int i = 0; i < ft.nbline; i++) {
-    // for (int i = ft.nbline-1; i > -1; i--) {
-	// fwrite(ft.data[i], ft.linelen[i], sizeof(char), stdout);
-	// putchar('\n');
 
-	// puts(ft.data[i]);
-	
-	// printf("%s\n", ft.data[i]);
-    // }
-
-    FreeDataFromFile(&ft);
+    FreeDataFile(&ft);
     
-    #endif
+#endif
     return 0;
 }

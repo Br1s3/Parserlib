@@ -35,12 +35,16 @@ typedef struct
 
 
 // Declaration
-FILE *OpenFile(const char *FileName);
+FILE   *OpenFile(const char *FileName);
 ssize_t SizeOfFile(FILE *f);
 ssize_t CountLine(FILE *f);
-char **DataFromFile(const char *FileName, file_t *ft);
-int FreeDataFromFile(file_t *ft);
-int freeparse(char ***parse);
+char  **GetDataFile(const char *FileName, file_t *ft);
+char ***ParseDataFile(const char *FileName, char delim);
+int     FreeDataFile(file_t *ft);
+# if defined(VAR_OPT)
+int     FreeVarOpt(char ***parse)
+# endif
+int     FreeParsedData(char ***parse);
 
 
 # ifdef PARSERLIB_IMPLEMENTATION
@@ -139,7 +143,7 @@ ssize_t CountLine(FILE *f)
     return nbline;
 }
 
-char **DataFromFile(const char *FileName, file_t *ft)
+char **GetDataFile(const char *FileName, file_t *ft)
 {
     FILE *f = OpenFile(FileName);
     if (!f) return NULL;
@@ -212,7 +216,7 @@ char **DataFromFile(const char *FileName, file_t *ft)
     return ft->data;
 }
 
-int FreeDataFromFile(file_t *ft)
+int FreeDataFile(file_t *ft)
 {
     if (ft->data == NULL) {
 	fprintf(stdout, "INFO: Can not free data from file because parameter == NULL\n");
@@ -232,13 +236,13 @@ int FreeDataFromFile(file_t *ft)
     return res;
 }
 
-char ***parse(const char *FileName, char delim)
+char ***ParseDataFile(const char *FileName, char delim)
 {
 #  if !defined(VAR_OPT)
     file_t __ft;
 #  endif
 
-    if (!DataFromFile(FileName, &__ft)) return NULL;
+    if (!GetDataFile(FileName, &__ft)) return NULL;
 
     char ***pdata = (char ***)malloc(sizeof(char **)*(__ft.nbline+1));
     TESTMALLOC(pdata);
@@ -292,7 +296,7 @@ char ***parse(const char *FileName, char delim)
 }
 
 #  if defined(VAR_OPT)
-int freevarspe(char ***parse)
+int FreeVarOpt(char ***parse)
 {
     
     free(__ft.linelen);
@@ -311,7 +315,7 @@ int freevarspe(char ***parse)
 }
 #endif
 
-int freeparse(char ***parse)
+int FreeParsedData(char ***parse)
 {
     if (parse == NULL) {
 	fprintf(stdout, "INFO: Can not free data from file because parameter == NULL\n");
