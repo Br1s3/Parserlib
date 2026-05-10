@@ -30,6 +30,5 @@ $ ./main "filetoparse.csv|txt"
 
 ## TODO:
 
-- Redo the parse function but with one mmap and one single loop to do the rest of the work.
-- Make sure there are no memory leaks.
-- Create the opposite function get some parsed data into a file
+- Redo ParseCpyDataFile function but with one mmap and one single loop to do the rest of the work.
+
