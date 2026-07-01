@@ -3,22 +3,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>    // Used for: strerror
-#include <errno.h>
+#include <errno.h>     // Used for: errno
 #include <sys/mman.h>  // Used for: mmap and munmap
-#include <sys/types.h> // Used for: fstat 
+#include <sys/types.h> // Used for: fstat
 #include <sys/stat.h>  // Used for: fstat
 #include <unistd.h>    // Used for: fstat
 
 // #define VAR_OPT
 
 
-#define TESTMALLOC(x)                                                          \
-do                                                                             \
-{                                                                              \
-    if (x == NULL) {                                                           \
-        fprintf(stderr, "ERROR: %s, ligne : %d\n", strerror(errno), __LINE__); \
-        exit(EXIT_FAILURE);                                                    \
-    }                                                                          \
+#define TESTMALLOC(x)                                                         \
+do                                                                            \
+{                                                                             \
+    if (x == NULL) {                                                          \
+        fprintf(stderr, "ERROR: %s, line : %d\n", strerror(errno), __LINE__); \
+        exit(EXIT_FAILURE);                                                   \
+    }                                                                         \
 } while(0)
 
 
@@ -114,14 +114,13 @@ char **GetCpyDataFile(const char *FileName, file_t *ft)
     ft->fd = fileno(f);
     ft->data = NULL;
     ft->size = SizeOfFile(f);
-    
+
     if (ft->size == 0) {
 	fprintf(stdout, "INFO: File is empty\n");
 	fclose(f);
 	return NULL;
     }
     ft->nbline = CountLine(f);
-
     ft->rdata = mmap(NULL,
                     ft->size,
                     PROT_READ | PROT_WRITE,
@@ -142,7 +141,7 @@ char **GetCpyDataFile(const char *FileName, file_t *ft)
     ssize_t nbline = 0;
     char *p = ft->rdata;
     char *end = ft->rdata + ft->size;
-        
+
     while ((p < end)) {
         char *nl = memchr(p, '\n', end - p);
 	if (nl) {
@@ -180,10 +179,10 @@ char ***ParseCpyDataFile(const char *FileName, char delim)
         pdata[i] = (char **)malloc(sizeof(char *)*(nbword+1));
 	TESTMALLOC(pdata[i]);
 	pdata[i][nbword] = NULL;
-	
+
 	char *end = __ft.data[i] + j;
 	char *p   = __ft.data[i];
-	
+
 	nbword = 0;
 
 	while (p < end+1) {
@@ -206,23 +205,23 @@ char ***ParseCpyDataFile(const char *FileName, char delim)
 int FreeCpyDataFile(file_t *ft)
 {
     if (ft->data == NULL) {
-	fprintf(stdout, "INFO: Can not free data from file because parameter == NULL\n");
+        fprintf(stdout, "INFO: Can not free data from file because parameter == NULL\n");
 	return -1;
     }
     free(ft->data);
     int res;
 
     if ((res = munmap(ft->rdata, ft->size)) < 0)
-	fprintf(stderr, "ERROR: %s\n", strerror(errno));
-    
+        fprintf(stderr, "ERROR: %s\n", strerror(errno));
+
     return res;
 }
 
 int FreeCpyParsedData(char ***parse)
 {
     if (parse == NULL) {
-	fprintf(stdout, "INFO: Can not free data from file because parameter == NULL\n");
-	return -1;
+        fprintf(stdout, "INFO: Can not free data from file because parameter == NULL\n");
+        return -1;
     }
 
     for (ssize_t i = 0; parse[i]; i++) free(parse[i]);
@@ -262,7 +261,7 @@ ssize_t SizeOfFile(FILE *f)
 {
     struct stat st;
     (void)f;
-    
+
     if (fstat(__ft.fd, &st) < 0) {
 	fprintf(stderr, "ERROR: %s, %d\n", strerror(errno), __LINE__);
         close(__ft.fd);
@@ -277,7 +276,7 @@ ssize_t CountLine(FILE *f)
 {
     if ((__ft.fd == 0) && (f != NULL))  __ft.fd = fileno(f);
     if (__ft.size == 0) SizeOfFile(f);
-    
+
     char *start = mmap(NULL, __ft.size, PROT_READ | PROT_WRITE, MAP_PRIVATE, __ft.fd, 0);
 
     if (start == MAP_FAILED) {
@@ -285,7 +284,7 @@ ssize_t CountLine(FILE *f)
 	fclose(f);
 	return 0;
     }
-    __ft.rdata = start;    
+    __ft.rdata = start;
 
     char *buf = start;
     char *end = buf + __ft.size;
@@ -300,9 +299,9 @@ ssize_t CountLine(FILE *f)
 	    buf = ret+1;
 	} else break;
     }
-    
+
     __ft.nbline = nbline;
-    
+
     return nbline;
 }
 
@@ -310,9 +309,10 @@ char **GetCpyDataFile(const char *FileName, file_t *ft)
 {
     FILE *f = OpenFile(FileName);
     if (!f) return NULL;
-    
+
     ft->nbline = CountLine(f);
     ft->size = __ft.size;
+
     if (__ft.size == 0) {
 	fprintf(stdout, "INFO: File is empty\n");
 	munmap(__ft.rdata, __ft.size);
@@ -352,7 +352,7 @@ char **GetCpyDataFile(const char *FileName, file_t *ft)
 char ***ParseCpyDataFile(const char *FileName, char delim)
 {
     if (!GetCpyDataFile(FileName, &__ft)) return NULL;
- 
+
     char ***pdata = (char ***)malloc(sizeof(char **)*(__ft.nbline+1));
     TESTMALLOC(pdata);
     pdata[__ft.nbline] = NULL;
@@ -373,12 +373,12 @@ char ***ParseCpyDataFile(const char *FileName, char delim)
 	__ft.nbword[i] = nbword;
 
         pdata[i] = (char **)malloc(sizeof(char *)*(nbword+1));
-	TESTMALLOC(pdata[i]);
-	pdata[i][nbword] = NULL;
+        TESTMALLOC(pdata[i]);
+        pdata[i][nbword] = NULL;
 
 	char *end = __ft.data[i] + j;
 	char *p   = __ft.data[i];
-	
+
 	nbword = 0;
 
 	while (p < end+1) {
@@ -402,15 +402,15 @@ char ***ParseCpyDataFile(const char *FileName, char delim)
 int FreeCpyDataFile(file_t *ft)
 {
     if (ft->data == NULL) {
-	fprintf(stdout, "INFO: Can not free data from file because parameter == NULL\n");
-	return -1;
+        fprintf(stdout, "INFO: Can not free data from file because parameter == NULL\n");
+        return -1;
     }
     free(ft->data);
     free(__ft.linelen);
     int res;
 
     if ((res = munmap(ft->rdata, ft->size)) < 0)
-	fprintf(stderr, "ERROR: %s\n", strerror(errno));
+        fprintf(stderr, "ERROR: %s\n", strerror(errno));
 
     return res;
 }
@@ -418,7 +418,7 @@ int FreeCpyDataFile(file_t *ft)
 int FreeCpyParsedData(char ***parse)
 {
     if (parse == NULL) {
-	fprintf(stdout, "INFO: Can not free data from file because parameter == NULL\n");
+        fprintf(stdout, "INFO: Can not free data from file because parameter == NULL\n");
 	return -1;
     }
 
@@ -429,8 +429,8 @@ int FreeCpyParsedData(char ***parse)
 
     int res = 0;
     if((res = munmap(__ft.rdata, __ft.size)) < 0) {
-	fprintf(stderr, "ERROR: %s\n", strerror(errno));
-	return res;
+        fprintf(stderr, "ERROR: %s\n", strerror(errno));
+        return res;
     }
 
     return res;
@@ -445,8 +445,8 @@ char ***ParseDataFile(const char *FileName, char delim, file_t *ft)
     FILE *f = NULL;
     f = fopen(FileName, "r+");
     if (f == NULL) {
-	fprintf(stderr, "ERROR: %s: \"%s\"\n", strerror(errno), FileName);
-	return NULL;
+        fprintf(stderr, "ERROR: %s: \"%s\"\n", strerror(errno), FileName);
+        return NULL;
     }
     // Open the file
 
@@ -469,7 +469,7 @@ char ***ParseDataFile(const char *FileName, char delim, file_t *ft)
 	return 0;
     }
     // mmap a link to the file
-    
+
     char *buf = ft->rdata;
     char *end = buf + ft->size;
     ft->nbline = 0;
@@ -486,49 +486,48 @@ char ***ParseDataFile(const char *FileName, char delim, file_t *ft)
     TESTMALLOC(ft->nbword);
 
     fclose(f);
-    
+
     char ***pdata = (char ***)malloc(sizeof(char **)*(ft->nbline+1));
     TESTMALLOC(pdata);
     pdata[ft->nbline] = NULL;
-    
+
     ssize_t k = 0;
     for (ssize_t i = 0; i < ft->nbline; i++) {
-	ssize_t nbword = 0;
-	ssize_t j = 0;
-	
-	for (j = 0; ft->rdata[k] != '\n'; j++, k++)
-	    if (ft->rdata[k] == delim) nbword++;
-	if (ft->rdata[k] == '\n') k++;
+        ssize_t nbword = 0;
+        ssize_t j = 0;
+
+        for (j = 0; ft->rdata[k] != '\n'; j++, k++)
+            if (ft->rdata[k] == delim) nbword++;
+        if (ft->rdata[k] == '\n') k++;
 
 	nbword++;
-	
-        pdata[i] = (char **)malloc(sizeof(char *)*(nbword+1));
-	TESTMALLOC(pdata[i]);
-	pdata[i][nbword] = NULL;
-	ft->nbword[i] = nbword;
-	
-	nbword = 0;
-	end = &ft->rdata[(k-1)-j] + j;
-	buf = &ft->rdata[(k-1)-j];
-	for (j = 0; buf < end+1; j++) {
-	    char *nw = memchr(buf, delim, end - buf);
 
-	    if (nw) {
-		pdata[i][j] = buf;
-		buf = nw + 1;
-	    } else {
-		pdata[i][j] = buf;
-		break;
-	    }
-	}
+        pdata[i] = (char **)malloc(sizeof(char *)*(nbword+1));
+        TESTMALLOC(pdata[i]);
+        pdata[i][nbword] = NULL;
+        ft->nbword[i] = nbword;
+
+        nbword = 0;
+        end = &ft->rdata[(k-1)-j] + j;
+        buf = &ft->rdata[(k-1)-j];
+        for (j = 0; buf < end+1; j++) {
+            char *nw = memchr(buf, delim, end - buf);
+
+            if (nw) {
+                pdata[i][j] = buf;
+                buf = nw + 1;
+            } else {
+                pdata[i][j] = buf;
+                break;
+            }
+        }
     }
-    
+
     return pdata;
 }
 
 int FreeParsedData(char ***pdata, file_t *ft)
 {
-    // for (ssize_t i = 0; i < ft->nbline; i++) {
     for (ssize_t i = 0; pdata[i]; i++) {
 	free(pdata[i]);
     }
