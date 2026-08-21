@@ -1,13 +1,13 @@
 #ifndef PARSERLIB_H_INCLUED
 #define PARSERLIB_H_INCLUED
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>    // Used for: strerror
+#include <stdio.h>     // Used for: fileno(), fprintf(), fopen(), fclose()
+#include <stdlib.h>    // Used for: exit(), malloc(), free()
+#include <string.h>    // Used for: strerror(), memchr()
 #include <errno.h>     // Used for: errno
-#include <sys/mman.h>  // Used for: mmap and munmap
-#include <sys/types.h> // Used for: fstat
-#include <sys/stat.h>  // Used for: fstat
-#include <unistd.h>    // Used for: fstat
+#include <sys/mman.h>  // Used for: mmap(), munmap()
+#include <sys/types.h> // Used for: fstat()
+#include <sys/stat.h>  // Used for: fstat()
+#include <unistd.h>    // Used for: fstat()
 
 // #define VAR_OPT
 
