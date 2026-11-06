@@ -1,0 +1,15 @@
+In the usecase of GetCpyDataFile
+
+1. the function fileno() is called really too often :
+
+In GetCpyDataFile: - line 114
+    		   - line 116 inside SizeOfFile()
+		   - line 123 inside CountLine()
+
+2. The TESTMALLOC macro:
+   - Exit the code wich can be a big issu.
+   - Test only x == NULL wich is not useful for testing the mmap alloc:
+       - ft->rdata == MAP_FAILED
+
+3.
+

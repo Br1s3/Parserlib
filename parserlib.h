@@ -114,12 +114,12 @@ char **GetCpyDataFile(const char *FileName, file_t *ft)
     ft->fd = fileno(f);
     ft->data = NULL;
     ft->size = SizeOfFile(f);
-
     if (ft->size == 0) {
 	fprintf(stdout, "INFO: File is empty\n");
 	fclose(f);
 	return NULL;
     }
+
     ft->nbline = CountLine(f);
     ft->rdata = mmap(NULL,
                     ft->size,
@@ -457,7 +457,7 @@ char ***ParseDataFile(const char *FileName, char delim, file_t *ft)
     if (fstat(ft->fd, &st) < 0) {
 	fprintf(stderr, "ERROR: %s, %d\n", strerror(errno), __LINE__);
         fclose(f);
-        return 0;
+        return NULL;
     }
     ft->size = st.st_size;
     // Get the size of the file
@@ -466,7 +466,7 @@ char ***ParseDataFile(const char *FileName, char delim, file_t *ft)
     if (ft->rdata == MAP_FAILED) {
 	fprintf(stderr, "ERROR: %s, %d\n", strerror(errno), __LINE__);
 	fclose(f);
-	return 0;
+	return NULL;
     }
     // mmap a link to the file
 
